@@ -1,4 +1,4 @@
-![Untitled video - Made with Clipchamp](https://github.com/user-attachments/assets/863e9994-d47a-46fa-aff8-a7f2d4b32045)# Massage Machine Microcontroller (PIC16F627A) Programmming (MPLab) and Simulation in Proteus 
+# Massage Machine Microcontroller (PIC16F627A) Programmming (MPLab) and Simulation in Proteus 
 A friend of mine got stuck into troubleshooting of a massage machine. He did repaired some components but when he recovered hex code from the PIC microcontroller and tried to use it another PIC, it never worked. The code was basically protected for copying and reading by the programmer. He asked me to rescue him. This project is actually built for him and it worked like charm. 
 
 # Working Princple of Massage Controller
@@ -310,15 +310,16 @@ unsigned char scan_matrix() {
 # Testing in Proteus before final uploading and testing in real device:
 
 <h3>AUTO Mode</h3>
-![Untitled video - Made with Clipchamp](https://github.com/user-attachments/assets/0ff0f27b-deac-4887-9f26-2b40587e83d3)
+![AUTO MODE](https://github.com/user-attachments/assets/3abfc9a9-8cd9-46d9-9ea7-e89d638e159d)
 
 <h3>STEP Mode</h3>
-![STEP MODE - Made with Clipchamp](https://github.com/user-attachments/assets/e37905fb-e90a-4dfc-ad76-65f53ae8e828)
+![STEP MODE](https://github.com/user-attachments/assets/ce746857-0b43-492e-9133-fd702c6f1420)
 
 <h3>FULL Mode</h3>
-![FULL MODE - Made with Clipchamp](https://github.com/user-attachments/assets/0cdfea84-08ef-4f53-8297-03dd4810b55a)
+![FULL MODE](https://github.com/user-attachments/assets/2bbe45dc-f7d9-4a69-b88b-ac85585b9441)
 
 # Contact
 mansoor.ahmed@fuuast.edu.pk
+
 m.mansoor.ahmed@outlook.com
 
