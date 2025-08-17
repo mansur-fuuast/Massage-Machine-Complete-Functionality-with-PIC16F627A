@@ -1,4 +1,6 @@
-# Massage Machine Microcontroller Programmming (MPLab) and Simulation in Proteus 
+# Massage Machine Microcontroller (PIC16F627A) Programmming (MPLab) and Simulation in Proteus 
 A friend of mine got stuck into troubleshooting of a massage machine. He did repaired some components but when he recovered hex code from the PIC microcontroller and tried to use it another PIC, it never worked. The code was basically protected for copying and reading by the programmer. He asked me to rescue him. This project is actually built for him and it worked like charm. 
 
-#Working of Massage Controller
+# Working Princple of Massage Controller
+The machine had four modes namely, AUTO, STEP, FULL and STOP. There were a remote which is attached to the machine via a serial cable. The Remote had 04 SPST Buttons and 03 LED indicators. 01 Button for each mode selection and the 03 LEDs were for AUTO, STEP and FULL mode each and in STOP mode all remained OFF. There were 04 12VDC motors whose positive terminal were connected to the 12VDC Power while negative terminals were driven by 04 2N2222 Transistors in emitter-follower configuartion. Base of each Transisor was connected to PIC microcontroller (RB4, RB5, RB6 and RB7) via a 4.5K Ohm resistor. All the pins are kept HIGH and driven to LOW when Motors are needed to operate.
+<h3>AUTO Mode: </h3> When Auto Mode Button is pressed, Auto Mode Indicator LED lit up and Motors start operating in Auto Mode (Motor 1 and 4 operate simultaneously for 700ms and then Motor 2 and 3 for the same period)
