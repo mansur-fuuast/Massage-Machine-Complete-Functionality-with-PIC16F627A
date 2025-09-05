@@ -1,7 +1,7 @@
 # Massage Machine Microcontroller (PIC16F627A) Programmming
 A friend of mine got stuck into troubleshooting of a massage machine. He did repaired some components but when he recovered hex code from the PIC microcontroller and tried to use it another PIC, it never worked. The code was basically protected for copying and reading by the programmer. He asked me to rescue him. This project is actually built for him and it worked like charm. 
 
-# Working Princple of Massage Controller
+<h1>Working Princple of Massage Controller</h1>
 The machine had four modes namely, AUTO, STEP, FULL and STOP. There were a remote which is attached to the machine via a serial cable. The Remote had 04 SPST Buttons and 03 LED indicators. 01 Button for each mode selection and the 03 LEDs were for AUTO, STEP and FULL mode each and in STOP mode all remained OFF. There were 04 12VDC motors whose positive terminal were connected to the 12VDC Power while negative terminals were driven by 04 2N2222 Transistors in emitter-follower configuartion. Base of each Transisor was connected to PIC microcontroller (RB4, RB5, RB6 and RB7) via a 4.5K Ohm resistor. All the pins are kept HIGH and driven to LOW when Motors are needed to operate.
 The Buttons are connected in 2x2 Button Matrix like a calculator/mobile/computer keyboards. 02 Rows connections are always HIGH via external 10K OHMs pull-up resistors i.e RA4 and RB0 while 02 Coulmn connections are switched to logic LOW during Button Scanning. Positive termnal of LED Indicators in connected to VDD and negative terminal is driven by PIC microcontroller (RB1, RB2, RB3) via 460 OHM resistors. Follwoing operational modes of Massage Machine are managed by PIC Microcontroller. 
 <h3>AUTO Mode: </h3> When Auto Mode Button is pressed, Auto Mode Indicator LED lit up and Motors start operating in Auto Mode (Motor 1 and 4 operate simultaneously for 700ms and then Motor 2 and 3 for the same period).
@@ -9,7 +9,7 @@ The Buttons are connected in 2x2 Button Matrix like a calculator/mobile/computer
 <h3>FULL Mode: </h3> When Full Mode Button is pressed, Full Mode Indicator LED lit up and Motors start operating in Full Mode (All motors operate in independent time periods and sequence).
 <h3>STOP Mode: </h3> When Stop Mode Button is pressed, All LED Indicators and all Motors swicthes OFF.
 
-# Implementation
+<h1>Implementation</h1>
 Written following Code in MPLab X IDE and generated the HEX code for uploading to PIC16F627A: Also, 
 ```C Code
 /*
@@ -332,16 +332,6 @@ void main(void) {
 }
 
 ```
-# Testing in Proteus before final uploading and testing in real device:
-
-<h3>AUTO Mode</h3>
-![AUTO MODE](https://github.com/user-attachments/assets/3abfc9a9-8cd9-46d9-9ea7-e89d638e159d)
-
-<h3>STEP Mode</h3>
-![STEP MODE](https://github.com/user-attachments/assets/ce746857-0b43-492e-9133-fd702c6f1420)
-
-<h3>FULL Mode</h3>
-![FULL MODE](https://github.com/user-attachments/assets/2bbe45dc-f7d9-4a69-b88b-ac85585b9441)
 
 # Contact
 mansoor.ahmed@fuuast.edu.pk
