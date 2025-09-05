@@ -1,294 +1,301 @@
-/*
- * File:        main.c
- * Author:      M Mansoor Ahmed
- * E-mail:      mansoor.ahmed@fuuast.edu.pk, 
- *              m.mansoor.ahmed@outlook.com
- * Whatsapp:    +92-313-123-3939
- * Created on:  August 17, 2025, 1:25 AM
- * 
- * This file is written for PIC16F627A micro-controller of a massage machine. It 
- * controls the operation of four 12VDC Motors powered through an external 
- * circuit while driven to logic level LOW at the other terminal by 2N2222 
- * transistors. The Transistor's base is connected to PIC micro-controller's 
- * Pins RB4, RB5, RB6 and RB7 via 4.5K Ohms resistors. Motors are controlled by 
- * PIC micro-controller via a remote control that have four SPST switches and 03
- * LEDs. Full, Auto, Step and Stop switches are connected to PIC 
- * micro-controller in 2x2 grid like calculator keypads. Pins are RA2, RA3, RA4
- * and RB0. While three LEDs indicating current operational mode are Full, Auto
- * and Step. Positive Terminal of LEDs' are connected to VDD while negative 
- * terminal is driven by PIC micro-controller via 330Ohms Resistors.
- * The program constantly listen for switches press every 20ms and switches to 
- * the corresponding mode. 
- * 
- * AUTO MODE:   When auto mode switch is pressed the PIC micro-controller 
- * switches ON AUTO MODE LED indicator and motors start operating in AUTO mode 
- * (Motor 1 & 4 ON for 700ms then Motor 2 & 3 ON for 700ms and so on) until stop
- * switch is pressed or another mode is switched.
- * 
- * FULL MODE:   When full mode switch is pressed the PIC micro-controller 
- * switches ON FULL MODE LED indicator and motors start operating in FULL mode 
- * (All motors switches ON/OFF at variable time periods) until stop switch is 
- * pressed or another mode is switched.
- * 
- * STEP MODE:   When step mode switch is pressed the PIC micro-controller 
- * switches ON STEP MODE LED indicator and motors start operating in step mode 
- * (Motor 1 & 2 ON for 700ms then Motor 3 & 4 ON for 700ms and so on) until stop 
- * switch is presses or another mode is switched.
- */
-
-//Internal Oscillator Frequency set at 4MHz
-#define _XTAL_FREQ 4000000
+/*==============================================================================
+ File:  This file is part of a project utilizing PIC16F627 Microchip 
+        micro-controller IC. It controls a Massage Kit Installed in Executive
+        class buses. Massage Kits are installed with four 12VDC High Speed 
+        Motors. Massage Kits operate through a remote control connected via a 
+        serial cable. It has four operational modes with corresponding 
+        indications incorporated by using LEDs. 
+        (i)     Stop Mode:  keeps massage kits OFF.
+        (ii)    Auto Mode:  Motors operate in pairs 02 ON 02 OFF (Horizontally)
+        (iii)   Step Mode:  Motors operate in pairs 02 ON 02 OFF (Vertically)
+        (iv)    Full Mode:  Further 2 Modes. Operates All Motors at variable
+                            time periods and speed.
+ Author: M Mansoor Ahmed (mansoor.ahmed@fuuast.edu.pk)
+ Created on:    03 September, 2025     
+ =============================================================================*/
 #include <xc.h>
+#include <stdint.h>
 
-//Configuration Bits
-#pragma config FOSC = INTOSCIO
-#pragma WDTE = OFF 
-#pragma PWRTE = OFF
-#pragma MCLRE = OFF
-#pragma config BOREN = OFF 
-#pragma LVP = OFF 
-#pragma CPD = OFF 
-#pragma CP = ON
+#define _XTAL_FREQ 4000000UL                    // Internal Frequency 4MHz
 
-// Function prototype declaration
-/* This is the function responsible for scanning the switches and setting the 
- * corresponding mode bit ON
- */
-unsigned char scan_matrix();
+extern uint8_t scanButtons(void);               // External assy function for Button Scanning
+extern void processAutoStepModes(void);         // External assy function for AUTO/STEP Modes
 
-// LED macros (active LOW)
-/*Defining the LEDs coonections to PIC16F627A*/
-#define LED_AUTO  PORTBbits.RB1
-#define LED_FULL  PORTBbits.RB2
-#define LED_STEP  PORTBbits.RB3
+/*==============================================================================
+ 
+                                 Configuration Bits  
+ 
+ =============================================================================*/
+#pragma config FOSC  = INTOSCIO  // Internal oscillator
+#pragma config WDTE  = OFF       // Watchdog Timer disabled
+#pragma config PWRTE = OFF       // Power-up Timer disabled
+#pragma config MCLRE = OFF       // RA5/MCLR is MCLR
+#pragma config BOREN = OFF       // Brown-out Reset disabled
+#pragma config LVP   = OFF       // Low-voltage programming disabled
+#pragma config CPD   = OFF       // Data EEPROM memory code protection off
+#pragma config CP    = OFF       // Flash program memory code protection off
 
-// Modes Definitions
-#define MODE_STOP 0
-#define MODE_AUTO 1
-#define MODE_FULL 2
-#define MODE_STEP 3
+/*==============================================================================
+ 
+                                Global Variables  
+ 
+ =============================================================================*/
+// -------- Motor Patterns (Full A, scaled to 10ms) --------
+const uint8_t motor1A[] = {19, 3, 7, 22, 15, 24, 7, 30, 8, 12, 7, 12, 7, 37};
+const uint8_t motor2A[] = {7, 13, 14, 23, 14, 80, 7, 12, 7, 12, 7, 12};
+const uint8_t motor3A[] = {19, 3, 8, 22, 14, 24, 7, 12, 7, 12, 7, 12, 7, 56};
+const uint8_t motor4A[] = {7, 3, 8, 22, 14, 23, 8, 11, 8, 67, 8, 30};
 
-// Motor timing patterns for FULL MODE (in 10ms units)
-const unsigned char motor_timings[4][12] = {
-    {30, 20, 16, 22,  9, 30,  9, 13,  6, 13,  9, 35}, // M1
-    { 9,  9,  9,  9,  9,  9,  9, 13, 17, 20, 17, 76}, // M2
-    {32, 20, 16, 22,  9, 10,  9, 10,  9, 10,  9, 54}, // M3
-    { 9, 30, 18, 21, 14, 22,  9, 10,  9, 67,  0,  0}  // M4
-};
+// -------- Motor Patterns (Full B, scaled to 10ms) --------
+const uint8_t motor1B[] = {0, 0, 12, 19, 12, 19, 12, 19, 12, 130};
+const uint8_t motor2B[] = {0, 93, 12, 19, 12, 19, 12, 19, 12, 37};
+const uint8_t motor3B[] = {0, 13, 12, 19, 12, 130, 12, 19, 12, 6};
+const uint8_t motor4B[] = {0, 44, 12, 19, 12, 19, 12, 19, 12, 86};
 
-// Global state variables
-unsigned char current_mode = MODE_STOP;
-unsigned char last_sw_state = 0;
+typedef struct {
+    const uint8_t *pattern;             // Motor ON/OFF Patterns
+    uint8_t length;                     // Patterns Length
+    uint8_t idx;                        // id
+    uint16_t remaining;                 // Remaining Time in ms
+    uint8_t active;                     // 0 = OFF Segment, 1 = ON segment
+} Motor;
 
-void main() {
-    CMCON = 0x07;        // Disable comparators
-    TRISB = 0b00000001;  // RB0 input, others outputs
-    TRISA = 0b00010000;  // RA4 input, others outputs
+#define PWM_FREQ    62                  // PWM Frequency
+#define DUTY_CYCLE  60                  // Duty Cycle in %
+
+#define LEN1A       (sizeof(motor1A))
+#define LEN2A       (sizeof(motor2A))
+#define LEN3A       (sizeof(motor3A))
+#define LEN4A       (sizeof(motor4A))
+
+#define LEN1B       (sizeof(motor1B))
+#define LEN2B       (sizeof(motor2B))
+#define LEN3B       (sizeof(motor3B))
+#define LEN4B       (sizeof(motor4B))
+
+volatile uint8_t        current_mode    = 0;    // 0 = STOP, 1 = AUTO, 2 = STEP, 3 = FULL
+volatile unsigned char  full_sub_mode   = 0;    // 0 = FULL A, 1 = FULL B
+volatile unsigned char  auto_step_state = 0;    // 0 = Motor Pair 1, 1 = Motor Pair 2
+volatile uint8_t        pwm_counter     = 0;    // PWM Pulses Counter
+volatile uint16_t       ms_counter      = 0;    // Milli seconds Counter
+volatile uint8_t        pwm_period      = (1000 / PWM_FREQ); 
+volatile uint8_t        on_time         = (1000 / PWM_FREQ) * DUTY_CYCLE / 100;
+volatile uint8_t        on_time_A       = ((1000 / PWM_FREQ) * DUTY_CYCLE / 100)+1;
+volatile uint8_t        on_time_B       = ((1000 / PWM_FREQ) * DUTY_CYCLE / 100)+2;
+//volatile uint8_t        off_time        = (1000 / PWM_FREQ) - ((1000 / PWM_FREQ) * DUTY_CYCLE / 100);
+
+volatile Motor motors[4];
+
+/*==============================================================================
+ 
+                      Initialize Full Mode A Function 
+ 
+ =============================================================================*/
+void initFullA(void) {
+    motors[0].pattern = motor1A;
+    motors[0].length = LEN1A;
+    motors[0].idx = 0;
+    motors[0].remaining = (uint16_t) motor1A[0] * 10;
+    motors[0].active = 1;
+
+    motors[1].pattern = motor2A;
+    motors[1].length = LEN2A;
+    motors[1].idx = 0;
+    motors[1].remaining = (uint16_t) motor2A[0] * 10;
+    motors[1].active = 1;
+
+    motors[2].pattern = motor3A;
+    motors[2].length = LEN3A;
+    motors[2].idx = 0;
+    motors[2].remaining = (uint16_t) motor3A[0] * 10;
+    motors[2].active = 1;
+
+    motors[3].pattern = motor4A;
+    motors[3].length = LEN4A;
+    motors[3].idx = 0;
+    motors[3].remaining = (uint16_t) motor4A[0] * 10;
+    motors[3].active = 1;
+
+    PORTB &= 0x0F; // motors OFF initially
+}
+
+/*==============================================================================
+  
+                        Initialize Full Mode B Function 
+  
+ =============================================================================*/
+void initFullB(void) {
     
-    // Initialize outputs - ALL LEDs OFF, ALL motors OFF
-    PORTB = 0b00001111;  // LEDs OFF (active low), motors OFF (active HIGH)
-    PORTA = 0x00;
-    
-    // FULL mode state variables
-    unsigned char motor_step[4] = {0};
-    unsigned char motor_timer[4] = {0};
-    unsigned char motor_state[4] = {0};
-    unsigned char sequence_step = 0;
-    unsigned char time_counter = 0;
+    motors[0].pattern = motor1B;
+    motors[0].length = LEN1B;
+    motors[0].idx = 0;
+    motors[0].remaining = (uint16_t) motor1B[0] * 10;
+    motors[0].active = 1;
 
-    while(1) {
-        __delay_ms(10);  // 10ms time base
-        time_counter++;
+    motors[1].pattern = motor2B;
+    motors[1].length = LEN2B;
+    motors[1].idx = 0;
+    motors[1].remaining = (uint16_t) motor2B[0] * 10;
+    motors[1].active = 1;
 
-        // Scan buttons every 20ms
-        if((time_counter % 2) == 0) {
-            unsigned char sw = scan_matrix();
-            
-            if(sw != 0 && sw != last_sw_state) {
-                // Turn off all LEDs first
-                PORTB |= 0b00001110;
-                
-                switch(sw) {
-                    case 1:  // AUTO
-                        //Set the current selected mode bit to MODE AUTO
-                        current_mode = MODE_AUTO;
-                        //switch ON the AUTO LED
-                        LED_AUTO = 0;
-                        //set sequence step to 0 so at start M1 and M4 are 
-                        //selected
-                        sequence_step = 0;
-                        //Switch On M1 and M4 at start
-                        PORTB = (PORTB & 0x0F) | 0b10010000;  // M1&M4 ON
-                        break;
-                        
-                    case 2:  // FULL
-                        //Set the current selected mode bit to MODE FULL
-                        current_mode = MODE_FULL;
-                        //switch ON the FULL LED
-                        LED_FULL = 0;
-                        // Reset motor states
-                        for(int i=0; i<4; i++) {
-                            motor_step[i] = 0;
-                            motor_timer[i] = 0;
-                            motor_state[i] = 1;  // Start in ON state
-                        }
-                        //Switch On All motors at start
-                        PORTB |= 0xF0;  // All motors ON
-                        break;
-                        
-                    case 3:  // STEP
-                        //Set the current selected mode bit to MODE STEP
-                        current_mode = MODE_STEP;
-                        //switch ON the FULL LED
-                        LED_STEP = 0;
-                        //set sequence step to 0 so at start M1 and M2 are 
-                        //selected
-                        sequence_step = 0;
-                        //Switch ON M1 & M2
-                        PORTB = (PORTB & 0x0F) | 0b00110000;  // M1&M2 ON
-                        break;
-                        
-                    case 4:  // STOP
-                        //Set the current selected mode bit to MODE STOP
-                        current_mode = MODE_STOP;
-                        //Switch OFF all Motors
-                        PORTB &= 0x0F;  // All motors OFF
-                        break;
-                }
-                last_sw_state = sw;
-                time_counter = 0;  // Reset timing
-            }
+    motors[2].pattern = motor3B;
+    motors[2].length = LEN3B;
+    motors[2].idx = 0;
+    motors[2].remaining = (uint16_t) motor3B[0] * 10;
+    motors[2].active = 1;
+
+    motors[3].pattern = motor4B;
+    motors[3].length = LEN4B;
+    motors[3].idx = 0;
+    motors[3].remaining = (uint16_t) motor4B[0] * 10;
+    motors[3].active = 1;
+
+    PORTB &= 0x0F; // motors OFF initially
+}
+
+/*==============================================================================
+ 
+                        Process Full Mode Function  
+ 
+ =============================================================================*/
+void processFullMode(void) {
+    for (uint8_t i = 0; i < 4; i++) {
+        Motor *m = (Motor*) & motors[i];
+        if (m->remaining) {
+            m->remaining--;
+        } else {
+            // advance pattern
+            m->idx = (m->idx + 1) % m->length;
+            m->remaining = m->pattern[m->idx]*10;
+            m->active = (m->idx % 2 == 0); // even = ON
         }
 
-        //Execute current mode (Motor sequence and timings as per selected mode)
-        switch(current_mode) {
-            //AUTO MODE
-            case MODE_AUTO:
-                //Until 700ms keep motor pair ON
-                if(time_counter >= 70) {  // 700ms reached
-                    //reset time counter
-                    time_counter = 0;
-                    //change sequence to switch to M2 & M3 from M1 & M4 after 700ms
-                    sequence_step = !sequence_step;
-                    //When sequence changed (after 700ms), Switch OFF M 1 & 4
-                    //and Switch ON M 2 & 3.
-                    if(sequence_step) {
-                        // M1 & M4 OFF, M2 & M3 ON
-                        PORTB = (PORTB & 0x0F) | 0b01100000;
-                    }
-                    //Else if still sequence not changed keep running M 1 & 4
-                    //and keep OFF M 2 & 3.
-                    else {
-                        // M2 & M3 OFF, M1 & M4 ON
-                        PORTB = (PORTB & 0x0F) | 0b10010000;
-                    }
-                }
-                break;
-                
-            case MODE_FULL: 
-                //loop to iterate in array of timings and steps in FULL MODE
-                for(int i=0; i<4; i++) {
-                    //Pick the duration from the Array 
-                    unsigned char dur = motor_timings[i][motor_step[i]];
-                    //if duration is zero ignore it
-                    if(dur == 0) {  // Skip zero-duration steps
-                        motor_step[i] = (motor_step[i] + 1) % 12;
-                        motor_timer[i] = 0;
-                        continue;
-                    }
-                    //Switch Motors ON/OFF based on timers for each motor picked
-                    //previously from two dimensional array
-                    if(++motor_timer[i] >= dur) {
-                        motor_timer[i] = 0;
-                        motor_state[i] = !motor_state[i];
-                        motor_step[i] = (motor_step[i] + 1) % 12;
-                        
-                        if(motor_state[i]) {
-                            PORTB |= (1 << (4+i));  // Motor ON
-                        } else {
-                            PORTB &= ~(1 << (4+i)); // Motor OFF
-                        }
-                    }
-                }
-                break;
-            //STEP MODE
-            case MODE_STEP: 
-                //Until 700ms keep motor pair ON
-                if(time_counter >= 70) {  // 700ms reached
-                    //Reset time counter
-                    time_counter = 0;
-                    //change motor sequence to switch ON now M 3 & 4.
-                    sequence_step = !sequence_step;
-                    //If sequence is changed switch OFF M 1 & 2 and ON M 3 & 4.
-                    if(sequence_step) {
-                        // M1 & M2 OFF, M3 & M4 ON
-                        PORTB = (PORTB & 0x0F) | 0b11000000;
-                    } 
-                    //If sequence is not changed then continue with M 1 & 2 ON
-                    //and M 3 & 4 OFF.
-                    else {
-                        // M3 & M4 OFF, M1 & M2 ON
-                        PORTB = (PORTB & 0x0F) | 0b00110000;
-                    }
-                }
-                break;
+        uint8_t p_time = 0;
+        // Apply PWM ON/OFF
+        if(full_sub_mode) p_time = on_time_B;
+        if(!full_sub_mode) p_time = on_time_A;
+        
+        if (m->active && pwm_counter < p_time) {
+            PORTB |= (1 << (7-i));
+        } else {
+            PORTB &= ~(1 << (7-i));
+        }
+        }
+
+    // PWM counter
+    pwm_counter++;
+    if (pwm_counter >= pwm_period) pwm_counter = 0;
+}
+
+/*==============================================================================
+ 
+                         Interrupt Service Routine  
+ 
+ =============================================================================*/
+void __interrupt() isr(void) {
+    if (T0IF) {
+        T0IF = 0;
+        TMR0 = 131; // reload for 1ms tick
+
+        if (current_mode == 0) {    // STOP Mode
+            //processFullA();
+        }
+        if (current_mode == 1 || current_mode == 2) {    // AUTO & STEP Mode
+            processAutoStepModes();
+        }
+        if (current_mode == 3) {    // FULL Mode
+            processFullMode();
         }
     }
 }
 
-// Function definition
-/*This is the function responsible for scanning of the switch matrix. It will 
-keep listening to switch presses and will set corresponding modes. As we have 
- four Pins connection (RB0 & RA4 HIGH, While RA2 & 3 LOW), we have to use this
- matrix manipulation. No dedicated connection for each switch so we will form a 
- matrix of 2x2 i.e. Two Rows (RA4 and RB0 both HIGH) while Two Rows (RA2 and RA3
- * both LOW)*/
-unsigned char scan_matrix() {
-    unsigned char sw = 0;
+/*==============================================================================
+  
+                               Initialization 
+  
+ =============================================================================*/
+void init(void) {
+    CMCON = 0x07;           // Switch OFF Comparators on PIC16F627A
+    TRISA = 0b00110000;     // RA4 input (for button detection)
+    TRISB = 0b00000001;     // RB0 input, (for button detection) while RB1-RB7 output for LEDs and Motor Controls
+    PORTA = 0;
+    PORTB = 0;
 
-    /*Scan Column RA2*/
-    
-    //Set RA2 as output Pin
-    TRISAbits.TRISA2 = 0; 
-    
-    //Set RA2 to LOW
-    PORTAbits.RA2 = 0;
-    
-    //Set RA3 as input, the Pin will float with High Impedance making possible 
-    //to detect Whether its RB0 (AUTO) or RA4 (FULL) as both will be pulled to
-    //LOW when connected to RA2 otherwise will remain HIGH (by default)
-    TRISAbits.TRISA3 = 1;
-    
-    //de-bounce delay
-    __delay_us(10);
+    OPTION_REG = 0b00000010; // Prescaler 1:8
+    TMR0 = 131;
+    T0IE = 1;
+    GIE = 1;
+}
 
-    //if RB0 is pulled LOW its AUTO MODE switch pressed
-    if (PORTBbits.RB0 == 0) sw = 1;  // AUTO
+/*==============================================================================
+  
+                                   Update LEDs 
+  
+ =============================================================================*/
+void update_leds(void) {
+    const unsigned char mask[4] = {
+        0x0E,           // STOP -> all OFF  (binary equivalent 0b00001110)
+        0x0B,           // AUTO -> LED1 ON  (binary equivalent 0b00001011)
+        0x07,           // STEP -> LED2 ON  (binary equivalent 0b00000111)
+        0x0D            // FULL -> LED3 ON  (binary equivalent 0b00001101)
+    };
+    PORTB = (PORTB & 0xF0) | mask[current_mode];
+}
 
-    //if RA4 is pulled LOW its FULL MODE switch pressed
-    if (PORTAbits.RA4 == 0) sw = 2;  // FULL
-
-    // Scan Column RA3
-
-    //Set RA2 as input Pin, the Pin will float with High Impedance making 
-    //possible to detect Whether its RB0 (STEP) or RA4 (STOP) as both will be 
-    //pulled to LOW when connected to RA3 otherwise will remain HIGH (by default)
-    TRISAbits.TRISA2 = 1;
+/*==============================================================================
+  
+                               Main Function 
+  
+ =============================================================================*/
+void main(void) {
+    init();
+    uint8_t last_button = 255;
     
-    //RA3 as output pin so we can control it
-    TRISAbits.TRISA3 = 0; 
-    //Set RA3 to LOW
-    PORTAbits.RA3 = 0;
-    //de-bounce time
-    __delay_us(10);
-    //if RB0 is pulled LOW by RA3 its STEP MODE switch pressed
-    if (PORTBbits.RB0 == 0) sw = 3;  // STEP
-    //if RA4 is pulled LOW by RA3 its STOP MODE switch pressed
-    if (PORTAbits.RA4 == 0) sw = 4;  // STOP
+    while (1) {
+        // 1. Check for button press
+        uint8_t button_pressed = scanButtons();
 
-    // Release columns
-    TRISAbits.TRISA2 = TRISAbits.TRISA3 = 1;
-    
-    //return the selected mode
-    return sw;
+        // 2. Handle the button press event
+        if (button_pressed != 255 && button_pressed != last_button) {
+            switch (button_pressed) {
+            default:
+            case 0: // STOP Button
+                current_mode = 0;
+                full_sub_mode = 0;
+                // Turn off all motors
+                PORTB &= 0x0F;
+                break;
+            case 1: // AUTO Button
+                current_mode = 1;
+                full_sub_mode = 0;
+                break;
+            case 2: // STEP Button
+                current_mode = 2;
+                full_sub_mode = 0;
+                break;
+            case 3: // FULL Button
+                if (current_mode != 3) {
+                    current_mode = 3;
+                    full_sub_mode = 0;
+                    initFullA();
+                    //initFullMode(patternsA, lengthsA);
+                } else {
+                    if(!full_sub_mode) {
+                        full_sub_mode = !full_sub_mode;
+                        initFullB();  
+                    }else{
+                        full_sub_mode = !full_sub_mode;
+                        initFullA();
+                    }
+                }
+                break;
+            }
+        }
+        last_button = button_pressed;
+        // 3. Update LEDs based on current mode
+        update_leds();
+
+        // 4. Small delay to reduce CPU load
+        __delay_ms(5);
+    }
 }
