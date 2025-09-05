@@ -1,17 +1,54 @@
-# Massage Machine Microcontroller (PIC16F627A) Programmming
-A friend of mine got stuck into troubleshooting of a massage machine. He did repaired some components but when he recovered hex code from the PIC microcontroller and tried to use it another PIC, it never worked. The code was basically protected for copying and reading by the programmer. He asked me to rescue him. This project is actually built for him and it worked like charm. 
+# Massage Machine PIC MCU Programmming
+<h2>Hardware Configuration:</h2> The circuit comprises 1 PIC16F627A, 04 SPST Buttons, 03 LEDs, and 04 Motors. Buttons and LEDs are part of a remote control used to control various modes and ON/OFF of device. Four Buttons are connected in 2 x 2 Matrix to Pins RA2, RA3, RA4 & RB0. RA4 & RB0 are connected to VDD via external pull up resistors of 10K each. AUTO button is connected to RA2 & RB0. FULL button is connected to RA2 & RA4. STEP button is connected to RA3 & RB0. STOP button is connected to RA3 & RA4. Three LEDs Indicators' positive terminals are connected to VDD while negative terminals are connected to Pins RB1, RB2 & RB3 via 460Ohm resistors. Four Motors' positive terminals are connected to 12VDC power. While negative terminals are connected to emitters of 2N2222 transistors. CollectorS of transistors are grounded while base are driven by Pins RB4, RB5, RB6, and RB7 via 4.5K resistors.
+ <img width="562" height="211" alt="image" src="https://github.com/user-attachments/assets/15f6e7f9-80d4-4e1a-bf8e-681a941e15c6" />
 
-<h1>Working Princple of Massage Controller</h1>
-The machine had four modes namely, AUTO, STEP, FULL and STOP. There were a remote which is attached to the machine via a serial cable. The Remote had 04 SPST Buttons and 03 LED indicators. 01 Button for each mode selection and the 03 LEDs were for AUTO, STEP and FULL mode each and in STOP mode all remained OFF. There were 04 12VDC motors whose positive terminal were connected to the 12VDC Power while negative terminals were driven by 04 2N2222 Transistors in emitter-follower configuartion. Base of each Transisor was connected to PIC microcontroller (RB4, RB5, RB6 and RB7) via a 4.5K Ohm resistor. All the pins are kept HIGH and driven to LOW when Motors are needed to operate.
-The Buttons are connected in 2x2 Button Matrix like a calculator/mobile/computer keyboards. 02 Rows connections are always HIGH via external 10K OHMs pull-up resistors i.e RA4 and RB0 while 02 Coulmn connections are switched to logic LOW during Button Scanning. Positive termnal of LED Indicators in connected to VDD and negative terminal is driven by PIC microcontroller (RB1, RB2, RB3) via 460 OHM resistors. Follwoing operational modes of Massage Machine are managed by PIC Microcontroller. 
-<h3>AUTO Mode: </h3> When Auto Mode Button is pressed, Auto Mode Indicator LED lit up and Motors start operating in Auto Mode (Motor 1 and 4 operate simultaneously for 700ms and then Motor 2 and 3 for the same period).
-<h3>STEP Mode: </h3> When Step Mode Button is pressed, Step Mode Indicator LED lit up and Motors start operating in Step Mode (Motor 1 and 2 operate simultaneously for 700ms and then Motor 3 and 4 for the same period).
-<h3>FULL Mode: </h3> When Full Mode Button is pressed, Full Mode Indicator LED lit up and Motors start operating in Full Mode (All motors operate in independent time periods and sequence).
-<h3>STOP Mode: </h3> When Stop Mode Button is pressed, All LED Indicators and all Motors swicthes OFF.
+<h2>Functional Description:</h2> We need to develop a code for following functionality:
+
+<b>Mode Auto:</b> On Auto Button Click, 
+
+•	AUTO LED (RB1) must get ON and remain ON until next mode change. 
+
+•	Motors 1 & 4 Switch ON for 670ms with 41 pulses (PWM), then Motors 2 & 3 switch ON for same no of time and pulses and so on until mode is changed. 
+
+<b>Mode Step:</b> On STEP Button Click, 
+
+•	STEP LED (RB2) must get ON and remain ON until next mode change. 
+
+•	Motors 1 & 2 Switch ON for 670ms with 41 pulses (PWM), then Motors 3 & 4 switch ON for same no of time and pulses and so on until mode is changed. 
+
+<b>Mode Full:</b> FULL mode has two further modes. 
+
+•	On Full Button 1st Click 
+
+  o	FULL LED (RB3) must get ON and remain ON until next mode change. 
+
+  o	All Motors Switch ON simultaneously with independent array of ON time, pulses and OFF time as given below:
+    
+    	Motor 1: ON 190ms with 11 pulses, OFF 30ms, ON 70ms with 5 pulses, OFF 218ms, ON 146ms with 9 pulses, OFF 236ms, ON  74ms with 5 pulses, OFF 300ms, ON 78ms with 5 pulses, OFF 120ms, ON 70ms with 4 pulses, OFF 120ms, ON 70ms with 4 pulses, OFF 370ms (TOTAL 2092ms ), and so on. 
+    
+    	Motor 2: ON 70ms with 5 pulses, OFF 130ms, ON 140ms with 9 pulses, OFF 230ms, ON 140ms with 9 pulses, OFF 800ms, ON 70ms with 5 pulses, OFF 120ms, ON 70ms with 4 pulses, OFF 120ms, ON 70ms with 5 pulses, OFF 115ms, (TOTAL 2075) and so on. 
+    
+    	Motor 3: ON 190ms with 11 pulses, OFF 30ms, ON 75ms with 5 pulses, OFF 215ms, ON 140ms with 9 pulses, OFF 236ms, ON 70ms with 4 pulses, OFF 115ms, ON 70ms with 5 pulses, OFF 115ms, ON 70ms with 4 pulses, OFF 115ms, ON 70ms with 4 pulses, OFF 560ms (TOTAL 2071ms ), and so on. 
+    
+    	Motor 4: ON 70ms with 5 pulses, OFF 30ms, ON 80ms with 5 pulses, OFF 218ms, ON 140ms with 9 pulses, OFF 234ms, ON 80ms with 5 pulses, OFF 110ms, ON 75ms with 5 pulses, OFF 670ms, ON 75ms with 5 pulses, OFF 300ms, (TOTAL 2082ms) and so on. 
+
+•	On Subsequent 2nd Click on Full Button When Machine is already in Full Mode 
+  
+  o	FULL LED (RB3) must remain ON and remain ON until next mode change. Motors operate in following pattern, 
+    
+    	Motor 1: ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 1300ms (TOTAL 2340ms), and so on. 
+    
+    	Motor 2: OFF 930ms, ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 370ms, (TOTAL 2340ms) and so on. 
+    
+    	Motor 3: OFF 130ms, ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 1300ms, ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 60ms (TOTAL 2340ms) and so on. 
+    
+    	Motor 4: 440ms OFF, ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 190ms, ON 120ms with 8 pulses, OFF 180ms, ON 120ms with 8 pulses, OFF 8600ms, (TOTAL 2340ms) and so on. 
 
 <h1>Implementation</h1>
-Written following Code in MPLab X IDE and generated the HEX code for uploading to PIC16F627A: Also, 
-```C Code
+Written following Code in MPLab X IDE and generated the HEX code for uploading to PIC16F627A: Also, include scan_buttons.asm and auto_step_modes.asm 
+main.c
+
+```
 /*
  * File:        main.c
  * Author:      M Mansoor Ahmed
@@ -333,8 +370,199 @@ void main(void) {
 
 ```
 
-# Contact
-mansoor.ahmed@fuuast.edu.pk
+scan_buttons.asm
 
+```
+; ================================
+; File: scan_buttons.asm
+; Function: scan_buttons
+; Returns: WREG = button code
+;   0 = STOP
+;   1 = AUTO
+;   2 = STEP
+;   3 = FULL
+;   255 = no button
+; ================================
+        LIST    P=16F627A       ; tell assembler which device
+        #include <xc.inc>       ; include XC8 definitions for SFRs
+
+    GLOBAL  _scanButtons   ; export to C
+
+    PSECT   text,class=CODE,delta=2
+
+_scanButtons:
+    ; Default return = 255 (no button)
+    movlw   0xFF
+    movwf   0x70        ; temp variable (choose a free GPR)
+
+    ; --- ROW1: RA2=0, RA3=1 ---
+    bcf     TRISA,2     ; RA2 output
+    bsf     TRISA,3     ; RA3 input
+    bcf     PORTA,2     ; RA2 low
+    bsf     PORTA,3     ; RA3 high
+
+    btfss   PORTA,4     ; Check RA4 -> FULL
+    movlw   3
+    btfss   PORTB,0     ; Check RB0 -> AUTO
+    movlw   1
+    movwf   0x70
+
+    ; --- ROW2: RA3=0, RA2=1 ---
+    bcf     TRISA,3     ; RA3 output
+    bsf     TRISA,2     ; RA2 input
+    bcf     PORTA,3     ; RA3 low
+    bsf     PORTA,2     ; RA2 high
+
+    btfss   PORTA,4     ; Check RA4 -> STOP
+    movlw   0
+    btfss   PORTB,0     ; Check RB0 -> STEP
+    movlw   2
+    movwf   0x70
+
+    ; Return value
+    movf    0x70,W
+    return
+
+```
+
+auto_step_modes.asm
+
+```
+; runAutoStepModes.asm
+; Assembly implementation of runAutoStepModes function for PIC16F627A
+
+    list p=16f627a
+    
+    ; Register definitions
+STATUS  equ 0x03
+PORTB   equ 0x06
+PCL     equ 0x02
+    
+    ; Flag bit positions in STATUS register
+Z_FLAG  equ 2    ; Zero flag bit position
+C_FLAG  equ 0    ; Carry flag bit position
+    
+    ; Declare global symbols
+    global _processAutoStepModes
+    
+    ; External variables
+    global _pwm_counter
+    global _on_time
+    global _current_mode
+    global _auto_step_state
+    global _pwm_period
+    global _ms_counter
+    
+    ; Define temporary storage
+temp     equ 0x70
+temp2    equ 0x71
+    
+    ; Code section with PSECT
+    PSECT text0, class=CODE, delta=2
+
+_processAutoStepModes:
+    ; Check if pwm_counter < on_time
+    movf    _pwm_counter, W
+    subwf   _on_time, W
+    btfss   STATUS, C_FLAG
+    goto    motors_off
+    
+    ; Check current_mode
+    movf    _current_mode, W
+    xorlw   1           ; Check if current_mode == 1 (AUTO)
+    btfss   STATUS, Z_FLAG
+    goto    step_mode
+    
+    ; AUTO mode
+    movf    _auto_step_state, W
+    btfss   STATUS, Z_FLAG
+    goto    auto_state_1
+    
+    ; auto_step_state == 0: M1+M4 on
+    movf    PORTB, W
+    andlw   0x0F
+    iorlw   0x90        ; 0b10010000 - M1 and M4
+    movwf   PORTB
+    goto    update_counters
+    
+auto_state_1:
+    ; auto_step_state == 1: M2+M3 on
+    movf    PORTB, W
+    andlw   0x0F
+    iorlw   0x60        ; 0b01100000 - M2 and M3
+    movwf   PORTB
+    goto    update_counters
+    
+step_mode:
+    ; STEP mode
+    movf    _auto_step_state, W
+    btfss   STATUS, Z_FLAG
+    goto    step_state_1
+    
+    ; auto_step_state == 0: M1+M2 on
+    movf    PORTB, W
+    andlw   0x0F
+    iorlw   0xC0        ; 0b11000000 - M1 and M2
+    movwf   PORTB
+    goto    update_counters
+    
+step_state_1:
+    ; auto_step_state == 1: M3+M4 on
+    movf    PORTB, W
+    andlw   0x0F
+    iorlw   0x30        ; 0b00110000 - M3 and M4
+    movwf   PORTB
+    goto    update_counters
+    
+motors_off:
+    ; Turn off all motors
+    movf    PORTB, W
+    andlw   0x0F
+    movwf   PORTB
+    
+update_counters:
+    ; Update pwm_counter
+    incf    _pwm_counter, F
+    movf    _pwm_period, W
+    subwf   _pwm_counter, W
+    btfss   STATUS, C_FLAG
+    goto    update_ms_counter
+    
+    ; Reset pwm_counter if >= pwm_period
+    clrf    _pwm_counter
+    
+update_ms_counter:
+    ; Update ms_counter
+    incf    _ms_counter, F
+    btfss   STATUS, Z_FLAG
+    goto    check_ms_counter
+    
+    incf    _ms_counter+1, F
+    
+check_ms_counter:
+    ; Check if ms_counter >= 670 (0x029E)
+    movlw   0x9E
+    subwf   _ms_counter, W
+    movlw   0x02
+    btfss   STATUS, C_FLAG
+    movlw   0x03
+    subwf   _ms_counter+1, W
+    btfss   STATUS, C_FLAG
+    return
+    
+    ; Reset ms_counter and toggle auto_step_state
+    clrf    _ms_counter
+    clrf    _ms_counter+1
+    movlw   0x01
+    xorwf   _auto_step_state, F
+    
+    return
+    
+    end
+```
+
+
+# Contact (for any query/questions)
+mansoor.ahmed@fuuast.edu.pk
 m.mansoor.ahmed@outlook.com
 
